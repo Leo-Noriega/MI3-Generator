@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -40,26 +40,34 @@ def process_json_file(file_path, device_id_map):
     pm_id = device_info["pm_id"]
 
     db_data = []
-    index = 0
-    for time, values in data.items():
-        time_obj = datetime.strptime(f"{date_str} {time}", "%Y-%m-%d %H:%M:%S")
+    index = 1
+    current_time = datetime.strptime(f"{date_str} 00:05:00", "%Y-%m-%d %H:%M:%S")
+
+    while index <= 288:
         db_record = {
             "device_id": device_id,
             "no_serie": no_serie,
             "pm_id": pm_id,
-            "date": {"$date": time_obj.isoformat() + ".000Z"},
+            "date": current_time.isoformat() + "Z",
             "index": index,
             "values": [None] * 40,
         }
 
         for fase in range(1, 3):
-            db_record["values"][fase - 1] = values.get(f"Corriente Fase {fase}", None)
-            db_record["values"][fase + 3] = values.get(f"Voltaje Fase {fase}", None)
-            db_record["values"][fase + 11] = values.get(f"Potencia activa Fase {fase}", None)
-            db_record["values"][fase + 15] = values.get(f"Potencia reactiva Fase {fase}", None)
-            db_record["values"][fase + 19] = values.get(f"Potencia aparente Fase {fase}", None)
-            db_record["values"][fase + 23] = values.get(f"Factor de potencia Fase {fase}", None)
-            db_record["values"][fase + 31] = values.get(f"Energia Activa Fase {fase}", None)
+            db_record["values"][fase - 1] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
+                f"Corriente Fase {fase}", None)
+            db_record["values"][fase + 3] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
+                f"Voltaje Fase {fase}", None)
+            db_record["values"][fase + 11] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
+                f"Potencia activa Fase {fase}", None)
+            db_record["values"][fase + 15] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
+                f"Potencia reactiva Fase {fase}", None)
+            db_record["values"][fase + 19] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
+                f"Potencia aparente Fase {fase}", None)
+            db_record["values"][fase + 23] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
+                f"Factor de potencia Fase {fase}", None)
+            db_record["values"][fase + 31] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
+                f"Energia Activa Fase {fase}", None)
 
         for i in range(36):
             try:
@@ -80,6 +88,7 @@ def process_json_file(file_path, device_id_map):
 
         db_data.append(db_record)
         index += 1
+        current_time += timedelta(minutes=5)
 
     return db_data
 

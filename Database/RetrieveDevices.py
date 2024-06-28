@@ -11,7 +11,7 @@ load_dotenv(find_dotenv())
 
 DB_NAME = os.getenv("MONGO_DB")
 DB = client[DB_NAME]
-COLLECTION_NAME = os.getenv("MONGO_COLLECTION")
+COLLECTION_NAME = os.getenv("MONGO_DEVICES_COLLECTION")
 DB_COLLECTION = DB[COLLECTION_NAME]
 
 
@@ -33,7 +33,7 @@ def save_device_json(device):
 def retrive_devices():
     try:
         devices = list(DB_COLLECTION.find({"brand": "Sismedia-RT"}))
-        with ThreadPoolExecutor(max_workers=5) as executor:
+        with ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(save_device_json, device) for device in devices]
 
         for future in as_completed(futures):
