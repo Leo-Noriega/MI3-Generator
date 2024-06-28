@@ -44,6 +44,9 @@ def process_json_file(file_path, device_id_map):
     current_time = datetime.strptime(f"{date_str} 00:05:00", "%Y-%m-%d %H:%M:%S")
 
     while index <= 288:
+        time_key = current_time.strftime("%H:%M:%S")
+        values = data.get(time_key, {})
+
         db_record = {
             "device_id": device_id,
             "no_serie": no_serie,
@@ -53,21 +56,14 @@ def process_json_file(file_path, device_id_map):
             "values": [None] * 40,
         }
 
-        for fase in range(1, 3):
-            db_record["values"][fase - 1] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
-                f"Corriente Fase {fase}", None)
-            db_record["values"][fase + 3] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
-                f"Voltaje Fase {fase}", None)
-            db_record["values"][fase + 11] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
-                f"Potencia activa Fase {fase}", None)
-            db_record["values"][fase + 15] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
-                f"Potencia reactiva Fase {fase}", None)
-            db_record["values"][fase + 19] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
-                f"Potencia aparente Fase {fase}", None)
-            db_record["values"][fase + 23] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
-                f"Factor de potencia Fase {fase}", None)
-            db_record["values"][fase + 31] = data.get(f"{current_time.hour}:{current_time.minute}", {}).get(
-                f"Energia Activa Fase {fase}", None)
+        for fase in range(1, 4):
+            db_record["values"][fase - 1] = values.get(f"Corriente Fase {fase}", None)
+            db_record["values"][fase + 3] = values.get(f"Voltaje Fase {fase}", None)
+            db_record["values"][fase + 11] = values.get(f"Potencia activa Fase {fase}", None)
+            db_record["values"][fase + 15] = values.get(f"Potencia reactiva Fase {fase}", None)
+            db_record["values"][fase + 19] = values.get(f"Potencia aparente Fase {fase}", None)
+            db_record["values"][fase + 23] = values.get(f"Factor de potencia Fase {fase}", None)
+            db_record["values"][fase + 31] = values.get(f"Energia Activa Fase {fase}", None)
 
         for i in range(36):
             try:
@@ -78,12 +74,15 @@ def process_json_file(file_path, device_id_map):
 
         db_record["values"] = [None if (v is None or np.isnan(v)) else v for v in db_record["values"]]
 
+        # Calcular sumas y promedios
         db_record["values"][3] = sum([v for v in db_record["values"][0:3] if v is not None])
-        db_record["values"][7] = sum([v for v in db_record["values"][4:7] if v is not None]) / 3
+        db_record["values"][7] = (sum([v for v in db_record["values"][4:7] if v is not None]) / 3) if any(
+            v is not None for v in db_record["values"][4:7]) else None
         db_record["values"][15] = sum([v for v in db_record["values"][12:15] if v is not None])
         db_record["values"][19] = sum([v for v in db_record["values"][16:19] if v is not None])
         db_record["values"][23] = sum([v for v in db_record["values"][20:23] if v is not None])
-        db_record["values"][27] = sum([v for v in db_record["values"][24:27] if v is not None]) / 3
+        db_record["values"][27] = (sum([v for v in db_record["values"][24:27] if v is not None]) / 3) if any(
+            v is not None for v in db_record["values"][24:27]) else None
         db_record["values"][35] = sum([v for v in db_record["values"][32:35] if v is not None])
 
         db_data.append(db_record)
