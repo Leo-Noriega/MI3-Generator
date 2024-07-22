@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -72,18 +73,24 @@ def process_json_file(file_path, device_id_map):
             except ValueError:
                 db_record["values"][i] = None
 
-        db_record["values"] = [None if (v is None or np.isnan(v)) else v for v in db_record["values"]]
+        db_record["values"] = [None if v is None or (isinstance(v, float) and np.isnan(v)) else v for v in
+                               db_record["values"]]
 
         # Calcular sumas y promedios
-        db_record["values"][3] = sum([v for v in db_record["values"][0:3] if v is not None])
-        db_record["values"][7] = (sum([v for v in db_record["values"][4:7] if v is not None]) / 3) if any(
+        db_record["values"][3] = sum(v for v in db_record["values"][0:3] if v is not None) if any(
+            v is not None for v in db_record["values"][0:3]) else None
+        db_record["values"][7] = (sum(v for v in db_record["values"][4:7] if v is not None) / 3) if any(
             v is not None for v in db_record["values"][4:7]) else None
-        db_record["values"][15] = sum([v for v in db_record["values"][12:15] if v is not None])
-        db_record["values"][19] = sum([v for v in db_record["values"][16:19] if v is not None])
-        db_record["values"][23] = sum([v for v in db_record["values"][20:23] if v is not None])
-        db_record["values"][27] = (sum([v for v in db_record["values"][24:27] if v is not None]) / 3) if any(
+        db_record["values"][15] = sum(v for v in db_record["values"][12:15] if v is not None) if any(
+            v is not None for v in db_record["values"][12:15]) else None
+        db_record["values"][19] = sum(v for v in db_record["values"][16:19] if v is not None) if any(
+            v is not None for v in db_record["values"][16:19]) else None
+        db_record["values"][23] = sum(v for v in db_record["values"][20:23] if v is not None) if any(
+            v is not None for v in db_record["values"][20:23]) else None
+        db_record["values"][27] = (sum(v for v in db_record["values"][24:27] if v is not None) / 3) if any(
             v is not None for v in db_record["values"][24:27]) else None
-        db_record["values"][35] = sum([v for v in db_record["values"][32:35] if v is not None])
+        db_record["values"][35] = sum(v for v in db_record["values"][32:35] if v is not None) if any(
+            v is not None for v in db_record["values"][32:35]) else None
 
         db_data.append(db_record)
         index += 1
@@ -117,3 +124,15 @@ def process_all_json_files():
                     json.dump(db_data, f, indent=4)
 
     print("Archivos JSON generados en la estructura de carpetas correspondiente.")
+
+
+def delete_directories():
+    directories = ["Mongo", "Devices", "Data"]
+    for directory in directories:
+        try:
+            shutil.rmtree(directory)
+            print(f"Directorio '{directory}' eliminado.")
+        except FileNotFoundError:
+            print(f"Directorio '{directory}' no encontrado, no es necesario eliminarlo.")
+        except Exception as e:
+            print(f"Error al eliminar el directorio '{directory}': {e}")
